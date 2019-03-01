@@ -1,0 +1,34 @@
+---
+
+- name: stop redis
+  shell: cd {{bin_dir}} && ./stop.sh
+
+- name: get old process
+  shell: pidof redis-server
+  register: old_process
+
+- name: check process if they are killed
+  wait_for:
+    path: "/proc/{{item}}/status"
+    state: absent
+    msg: "Fialed to kill old cumulis process"
+  with_items: "{{old_process.stdout_lines}}"
+  when: old_process.stdout != ""
+
+- name: configuration OS kernel
+  lineinfile:
+
+
+
+- name: install ruby dependency
+
+- name: tranfer redis package
+
+- name: flush existing data
+
+- name: start nodes
+
+- name: setup cluster
+
+- name: verify cluster nodes status
+

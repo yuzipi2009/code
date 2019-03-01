@@ -1,0 +1,17 @@
+- name: modify cassandra part in cumulis3.conf
+  lineinfile:
+    path: "{{cumulis_conf}}"
+    regexp: 'Cass_Hosts'
+    line: 'Cass_Hosts = {{cass_a}}:{{cass_port}};{{cass_b}}:{{cass_port}};{{cass_c}:{{cass_port}}'
+  tags:
+    - cassandra
+
+
+
+    - name: modify cassandra part in cumulis3.conf
+  lineinfile:
+    path: "{{cumulis_conf}}"
+    regexp: 'Cass_Hosts'
+    line: 'Cass_Hosts = {{cass_a}}:{{cass_port}};{{cass_b}}:{{cass_port}};{{cass_c}:{{cass_port}}'
+  tags:
+    - cassandra

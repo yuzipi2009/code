@@ -1,0 +1,80 @@
+---
+- hosts: centreonservers
+  vars:
+    repository: /data/tools/repository
+    ansi_dir: /data/tools/repository/ansible/ansible_playbooks
+    nrpe_dir: /data/tools/repository/nrpe-3.2.1/etc
+    plugin_dir: /usr/lib64/nagios/plugins
+
+  remote_user: kai-user
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+  - name: yum install dependency
+    yum: name="{{item}}" state=present
+    with_items:
+      - gcc
+      - glibc
+      - glibc-common
+      - openssl
+      - openssl-devel
+      - perl
+      - wget
+      - bc
+      - syssta
+      - lvm2
+
+  - name: wget nrpe
+    get_url: url=https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz dest=/tmp
+
+  - name: tar nrpe.tar.gz
+    shell: cd /tmp && tar -zxvf nrpe-3.2.1.tar.gz
+    register: tar
+
+  - name: compile nrpe
+    shell: cd /tmp/nrpe-3.2.1 && ./configure --enable-command-args --prefix=/data/tools/repository/nrpe-3.2.1 && make all && make install-groups-users && make install && make install-plugin && make install-daemon && make install-config && make install-inetd && make install-init
+    register: compile_result
+    when: tar.rc == 0
+
+  - name: replace_conf
+    template: src="{{ansi_dir}}/nrpe/nrpe.conf.j2" dest="{{nrpe_dir}}/nrpe.cfg" owner=nagios group=nagios mode=644
+    register: conf_change
+    when: compile_result.rc == 0
+
+  - name: enable nrpe
+    shell: systemctl enable nrpe
+
+  - name: restart nrpe
+    systemd: name=nrpe state=restarted enabled=yes
+    when: conf_change.changed
+
+  - name: check service
+    shell: systemctl status nrpe|grep -i running
+    register: nrpe_status
+
+  - name: print check result
+    shell: echo "[Success] NRPE service is running"
+    register: success
+
+
+  - debug: msg="{{success.stdout}}"
+    when: "'running' in nrpe_status.stdout"
+
+  - name: create nrpe plugins
+    file: path="{{plugin_dir}}"  force=yes recurse=yes  mode=0775 state=directory
+
+  - name: copy centreon scripts
+    synchronize: src="{{ansi_dir}}/nrpe/scripts/"  dest="{{plugin_dir}}"
+
+  - name: chown plugin files
+    file: path="{{plugin_dir}}"  force=yes recurse=yes  owner=root group=root mode=0775 state=directory
+
+  - name: chown var files
+    file: path="{{plugin_dir}}/var"  force=yes recurse=yes owner=nagios group=wheel mode=0775 state=directory
+
+  - name: remove nrpe package
+    file: path=/tmp/nrpe-3.2.1.tar.gz state=absent
+  - name: remove nrpe source directory
+    file: path=/tmp//nrpe-3.2.1  state=absent

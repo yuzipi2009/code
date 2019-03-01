@@ -1,0 +1,49 @@
+---
+- hosts: FE:LL:DL
+  remote_user: kai-user
+  become_root: yes
+  become_method: sudo
+
+  tasks:
+
+  - name: start dl
+    shell: "cd {{repo_dir}}/empowerthings/ && bin/start_service.sh dl3 {{keys_file}}"
+    when: "DL in group_names"
+
+  - name: start ll
+    shell: "cd {{repo_dir}}/empowerthings/ && bin/start_service.sh ll3 {{keys_file}}"
+    become_user: cumulis
+    when: "LL in group_names"
+
+  - name: start fe
+    shell: "cd {{repo_dir}}/empowerthings/ && bin/start_service.sh fe3 {{keys_file}}"
+    when: "FE in group_names"
+
+# Post check
+
+  - name: Check DL success
+    wait_for:
+      path: "{{repo_dir}}/empowerthings/cumulis_dl3.log"
+      search_regex: "listening for incoming requests"
+      state: present
+      msg: "failed to find 'listening for incoming requests'"
+      timeout: 100
+    when: "DL in group_names"
+
+  - name: Check LL success
+    wait_for:
+      path: "{{repo_dir}}/empowerthings/cumulis_ll3.log"
+      search_regex: "Processing regular requests"
+      state: present
+      msg: "failed to find 'Processing regular requests'"
+      timeout: 100
+    when: "LL in group_names"
+
+  - name: Check FE success
+    wait_for:
+      path: "{{repo_dir}}/empowerthings/cumulis_fe3.log"
+      search_regex: "Starting services for namespace"
+      state: present
+      msg: "failed to find 'Starting services for namespace'"
+      timeout: 100
+    when: "FE in group_names"
