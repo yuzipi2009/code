@@ -1,0 +1,61 @@
+
+---
+- hosts: nginx
+  remote_user: kai-user
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+
+  - name: stop nginx
+    shell: cd "{{nginx_dir}}" && sbin/stop.sh
+    register: stop_nginx
+    failed_when: "stop_nginx.rc != 0"
+
+  - name: check if subpo dir exsit or not
+    stat:
+      path: "{{html_dir}}/subpo"
+    register: subpo_stat
+
+  - name: delete old directory
+    file:
+      path: "{{html_dir}}/subpo"
+      state: absent
+    when: " subpo_stat.stat.exists"
+
+  - name: create subpo directory
+    file:
+      path: "{{html_dir}}/subpo"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+      recurse: yes
+
+  - name: extract subpo package to nginx node
+    unarchive:
+      src: "{{source_dir}}/dist/subpo-{{new_version}}.tar.bz2"
+      dest: "{{html_dir}}/subpo"
+      owner: root
+      group: root
+
+
+  - name: modify application.configuration.json
+    template:
+      src: application.configuration.j2
+      dest: "{{html_dir}}/subpo/assets/app.configuration.json"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: add one line at the end of application.configuration.json
+    lineinfile:
+      dest: "{{html_dir}}/subpo/assets/app.configuration.json"
+      insertbefore: '}'
+      line: '    "version": "{{new_version}}"'
+
+  - name: restart nginx
+    shell: cd "{{nginx_dir}}" && sbin/start.sh
+    register: start_nginx
+    failed_when: "start_nginx.rc != 0"

@@ -1,0 +1,262 @@
+#!/bin/bash
+
+readonly red=$(tput bold; tput setaf 1)
+readonly green=$(tput bold; tput setaf 2)
+readonly blue=$(tput bold; tput setaf 4)
+readonly reset=$(tput sgr0)
+
+export GOLANG_HOME=/data/tools/repository/go/
+export GOROOT=${GOLANG_HOME}
+export JAVA_HOME=/data/tools/repository/java
+
+# Maven environment variables
+export M2_HOME=/data/tools/repository/apache-maven
+export M2=${M2_HOME}/bin
+export MAVEN_OPTS="-Xms128m -Xmx256m"
+export PATH=${JAVA_HOME}/jre/bin:${JAVA_HOME}/bin:${PATH}:${M2}:${GOLANG_HOME}/bin
+
+work_dir=/home/yuxiao/Desktop/Deploy_production
+check_out=/home/yuxiao/Desktop/Deploy_production/empowerthing_check_out
+version=$1
+
+#node
+repo_dir=/data/tools/repository
+key=${repo_dir}/k5.json
+remote_user="kai-user"
+gk5=10.81.76.19
+
+fe=(
+10.81.74.136
+)
+
+ll=(
+10.81.74.137
+)
+
+dl=(
+10.81.74.139
+)
+
+all_node="${fe[*]} ${ll[*]} ${dl[*]}"
+
+step () {
+   echo "============================================="
+   echo "    $1"
+   echo "============================================="
+   echo
+}
+step "1 - Build"
+
+if [ "x${version}" == "x" ];then
+    echo "Please Specify the version, Aborting.."
+    exit
+fi
+:<<!
+cd ${work_dir} && rm -rf empowerthing_check_out
+
+git clone git@git.kaiostech.com:cloud/empowerthings.git ${check_out}
+cd "${check_out}" && git checkout ${version} || {
+echo "check out failed, Aborting..."
+exit
+}
+
+make clean && make deploy || {
+echo "make failed, Aborting..."
+exit
+}
+
+[ $? -eq 0 ] || {
+echo "complile empowerthings-${Tags} failed"
+exit
+}
+!
+# copy emperthings.tar.bz2 to fe ll and ll
+
+step "2 - Check_Connectivity"
+
+for node in ${all_node};do
+#    for node in ${layer[*]};do
+    host=`ssh ${remote_user}@${gk5} "ssh ${node} "sudo su -c 'hostname' ""`
+    [ $? -eq 0 ] && echo "${green}$host .....OK" && echo "${reset}" || {
+    echo "${red}$host .....Failed, Aborting..." && echo "${reset}"
+    exit
+    }
+done
+
+step "3 - Copy_Extract_Package"
+cd "${check_out}" && scp empowerthings-${version}.tar.bz2 ../k5.json ${remote_user}@${gk5}:/tmp
+[ $? -ne 0 ] && echo "copy package to GK failed..aborting"
+
+
+for node in ${all_node};do
+    ssh ${remote_user}@${gk5} "scp /tmp/empowerthings-${version}.tar.bz2 /tmp/k5.json ${node}:/tmp && ssh ${node} \"sudo su -c \\\"mv /tmp/empowerthings-${version}.tar.bz2 ${repo_dir} && cd ${repo_dir} && tar -xjvf ${repo_dir}/empowerthings-${version}.tar.bz2 && chown -R root: ${repo_dir}/empowerthings-${version} && mv /tmp/k5.json ${repo_dir} && chown cumulis: ${key} && rm -rf ${repo_dir}/empowerthings-${version}.tar.bz2 \\\"\""
+    [ $? -eq 0 ] && echo "${green}Copied package/keys to $node and extract.....OK" && echo "${reset}" || {
+    echo "${red}Copied package/keys to $host or extract.....Failed, Aborting..." && echo "${reset}"
+    exit
+    }
+done
+
+
+###############################################Below is critical#############################################
+k5_dir=${repo_dir}/empowerthings
+hmd_dir=${repo_dir}/empowerthings-hmd
+
+
+step "4 - Stop FE -> LL -> DL"
+
+#############
+#  Function #
+#############
+function stop_service(){
+layer=$1
+dir=$2
+
+cd ${dir} && bin/stop_service.sh ${layer}
+
+if [ $? -eq 0 ];then
+
+	echo "${green} stop ${layer} successfully" && echo "${reset}"
+
+else
+	echo "${red} stop ${layer} failed, need to kill" && echo "${reset}"
+
+fi
+
+}
+#################
+#  Function end #
+#################
+
+#############
+#  Function #
+#############
+function kill_process(){
+layer=$1
+
+process=`ps -ef|grep ${layer2}|grep -v grep |awk '{print $2}'`
+
+if [ "x${process}" == "x" ];then
+	echo " ${green}${layer2} exit peacefully, no need to kill" && echo "${reset}"
+else
+	for pid in `echo "${process}"`;do
+		kill -9 ${pid}
+        if [ $? -eq 0 ];then
+			echo "${blue}kill ${layer2}-${pid} Successfully" && echo "${reset}"
+		else
+			echo "${red}kill ${layer2}-${pid} failed" && echo "${reset}"
+		fi
+	done
+fi
+}
+#################
+#  Function end #
+#################
+
+for fe in ${fe[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${fe} \"$(typeset -f stop_service);$(typeset -f kill_process); sudo su - cumulis \\\"stop_service fe3 $k5_dir; stop_service fe $k5_dir;stop_service fe3 $hmd_dir;kill_process fe\\\"\""
+done
+
+for ll in ${ll[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${ll} \"$(typeset -f stop_service);$(typeset -f kill_process); sudo su - cumulis \\\"stop_service ll3 $k5_dir;kill_process ll\\\"\""
+done
+
+for dl in ${dl[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${dl} \"$(typeset -f stop_service);$(typeset -f kill_process); sudo su - cumulis \\\"stop_service dl3 $k5_dir;kill_process dl\\\"\""
+done
+
+step "5 - delete old link/create new link"
+
+#############
+#  Function #
+#############
+function replace_link(){
+dir=$1
+
+cd ${dir} && rm -rf bin && ln -s ${repo_dir}/empowerthings-${version}/bin bin
+[ $? -eq 0 ] && echo "${green}New link created!" && echo "${reset}" || {
+
+echo "${red}Create New link failed, Aborting" && echo "${reset}"
+exit 3
+}
+}
+#################
+#  Function end #
+#################
+
+for fe in ${fe[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${fe} \"$(typeset -f replace_link);sudo su - cumulis \\\" replace_link $k5_dir;replace_link $hmd_dir\\\"\""
+done
+
+for ll in ${ll[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${ll} \"$(typeset -f replace_link); sudo su - cumulis \\\"replace_link $k5_dir\\\"\""
+done
+
+for dl in ${dl[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${dl} \"$(typeset -f replace_link); sudo su - cumulis \\\"replace_link $k5_dir\\\"\""
+done
+
+step "6 - Start DL -> LL -> FE"
+
+#############
+#  Function #
+#############
+function check_process(){
+count=$1
+layer=$2
+process_number=`ps -ef|grep ${layer}|grep -v grep |awk '{print $2}'|wc -l`
+
+if [ ${process_number} -eq ${count} ];then
+	echo "${green} ${layer} started successfully" && echo "${reset}"
+else
+	echo  "${red} ${layer} started Failed" && echo "${reset}"
+
+fi
+}
+
+#############
+#  Function #
+#############
+function start_service(){
+layer=$1
+dir=$2
+
+cd ${k5_dir} && bin/start_service.sh ${layer} ${key}
+
+}
+
+for dl in ${dl[*]};do
+		 ssh ${remote_user}@${gk5} "ssh ${dl} \"$(typeset -f start_service);$(typeset -f check_process);sudo su - cumulis \\\"start_service dl3 $k5_dir;check_process 1 \\\"\""
+
+done
+
+for ll in ${ll[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${ll} \"$(typeset -f start_service);$(typeset -f check_process);sudo su - cumulis \\\"start_service ll3 $k5_dir;check_process 1 \\\"\""
+done
+
+for fe in ${fe[*]};do
+        ssh ${remote_user}@${gk5} "ssh ${fe} \"$(typeset -f start_service);$(typeset -f check_process);sudo su - cumulis \\\"start_service fe3 $k5_dir;start_service fe $k5_dir;start_service fe3 $hmd_dir; check_process 3\\\"\""
+done
+
+step "6 - Delete keys from GK and server"
+
+ssh ${remote_user}@${gk5} "rm -rf /tmp/k5.json"
+[ $? -eq 0 ] && echo "${blue}deleted keys from GK" && echo "${reset}" ||echo "${red}failed deleted keys from GK" && echo "${reset}"
+
+for dl in ${dl[*]};do
+    ssh ${remote_user}@${gk5} "ssh ${dl} "sudo su - c "cd ${repo_dir} && rm -rf k5.json && echo
+    "${green}k5.json deleted successfully!" && echo "${reset}" || echo "${red}Delete k5.json failed, Aborting" &&
+    echo ${reset}"""
+done
+
+for ll in ${ll[*]};do
+    ssh ${remote_user}@${gk5} "ssh ${ll} "sudo su - c "cd ${repo_dir} && rm -rf k5.json && echo
+    "${green}k5.json deleted successfully!" && echo "${reset}" || echo "${red}Delete k5.json failed, Aborting" &&
+    echo ${reset}"""
+done
+
+for fe in ${fe[*]};do
+    ssh ${remote_user}@${gk5} "ssh ${fe} "sudo su - c "cd ${repo_dir} && rm -rf k5.json && echo "${green}k5.json deleted successfully!" && echo "${reset}" || echo "${red}Delete k5.json failed, Aborting" && echo ${reset}"""
+done
+
+
+echo "Deploy ${version} Completed"

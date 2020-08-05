@@ -1,0 +1,50 @@
+{
+	"data": [
+
+        {
+      "Date": "2019-06-17",
+      "Service": "Empowerthings",
+      "New_Version": "0.109.15-p26",
+      "Comment": "Deploy Success",
+      "Change": "None"
+        },
+       {
+       "Date": "2019-06-25",
+      "Service": "Empowerthings",
+      "New_Version": "0.109.15-p28",
+      "Comment": "Deploy Success",
+      "Change": "None"
+       },
+       {
+       "Date": "2019-08-21",
+      "Service": "Empowerthings",
+      "New_Version": "0.111.46-p11",
+      "Comment": "CREATE TABLE orders_by_owner, this change is mentioned in Fernando v0.112.4",
+      "Change": "Refer to change_for_0.111.46p11"
+       },
+       {
+       "Date": "2019-08-28",
+      "Service": "Empowerthings",
+      "New_Version": "0.111.46-p13",
+      "Comment": "Deployed by Raffi",
+      "Change": "Need to check"
+       },
+       {
+       "Date": "2019-08-28",
+      "Service": "Submission Portal",
+      "New_Version": "2.1.6-p1",
+      "Comment": "Deployed by Daniel",
+      "Change": "Need to check"
+       },
+       {
+        "Date": "2019-09-12",
+      "Service": "Empowerthings",
+      "New_Version": "0.111.46-p33",
+      "Comment": "Deployed by Raffi",
+      "Change": "This is a fix version for 0.111.46-p13, fixed Fe Memmory Leak"
+       }
+
+
+]
+}
+

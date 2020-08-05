@@ -1,0 +1,40 @@
+---
+- hosts: "{{signapp}}"
+  remote_user: kai-user
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+
+  - name: get the runing
+  - name: stop signapp
+    shell: cd "{{repo_dir}}" && bin/stop_service.sh
+    register: stop_signapp
+
+  - name: backup old directory
+    shell: mv {{checkout_dir}}/subpo {{checkout_dir}}/subpo_{{date}}
+    register: backup_subpo
+    when: "stop_nginx.rc == 0"
+
+  - name: extract subpo package to nginx node
+    unarchive:
+      src: "{{checkout_dir}}"
+      dest: "{{html_dir}}"
+      owner: root
+      group: root
+      when: " backup_subpo.rc == 0"
+
+
+  - name: modify application.configuration.json
+    template:
+      src: "{{application.configuration.j2}}"
+      dest: "{{asset_dir}}"
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: restart nginx
+    shell: cd "{{repo_dir}}"/nginx && bin/start.sh
+    register: start_nginx
+    failed_when: "start_nginx.rc != 0"

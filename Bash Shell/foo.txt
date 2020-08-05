@@ -1,0 +1,1 @@
+'api.kaiostech.com'=56 'services.prod.kaiostech.com'=37 'origin.stage.kaiostech.com'=56 'dm.fota.kaiostech.com'=37 'push.test.kaiostech.com'=83 'api.test1.kaiostech.com'=72 'open.kaiostech.com'=89 'push.kaiostech.com'=56 'jenkins.stage.kaiostech.com'=89

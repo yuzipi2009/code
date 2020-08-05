@@ -2,6 +2,10 @@
 #  Mail: xiao.yu@kaiostech.com
 #  Date: 2018/08
 
+#  Author: Yu Xiao
+#  Mail: xiao.yu@kaiostech.com
+#  Date: 2018/08
+
 
 import pymysql
 import pandas as pd
@@ -259,7 +263,7 @@ plt.savefig(file2)
 plt.show()
 
 
-##############################below is the function to send email
+##############/################below is the function to send email
 
 outlook = win32.gencache.EnsureDispatch('outlook.application')
 mail = outlook.CreateItem(0)

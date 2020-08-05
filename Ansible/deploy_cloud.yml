@@ -6,241 +6,117 @@
   become_method: sudo
 
   tasks:
-  - name: get old process PID
+  - name: stop service
+    become_user: cumulis
+    shell: "cd {{var_dir}} && bin/stop_service fe3"
+    when: "'FE' in group_names"
+
+  - name: stop service
+    become_user: cumulis
+    shell: "cd {{var_dir}} && bin/stop_service ll3"
+    when: "'LL' in group_names"
+
+  - name: stop service
+    become_user: cumulis
+    shell: "cd {{var_dir}} && bin/stop_service dl3"
+    when: "'DL' in group_names"
+
+  - name: Get PID, if stop successfully, then {{old_process}} is empty
     shell: ps -ef|grep cumulis|grep -v grep|awk '{print $2}'
     register: old_process
 
-  - name: kill cumulis process
-    shell: "kill -15 {{item}}"
+  - name: kill cumulis process is still exsit
+    shell: "kill -9 {{item}}"
     with_items: "{{old_process.stdout_lines}}"
     when: old_process.stdout != ""
+    ignore_errors: yes   #sometime the process is gone but pid is there, so ignore such errors
 
   - name: check process if they are killed
     wait_for:
       path: "/proc/{{item}}/status"
+
       state: absent
-      msg: "Fialed to kill old cumulis process"
+      msg: "Fialed to kill cumulis process"
     with_items: "{{old_process.stdout_lines}}"
     when: old_process.stdout != ""
 
-  - name: register value for ls /data
-    shell: ls /data
-    register: data_dir
 
-  - name: clean old /data directory
+  #create directory /dar/var and soft link
+  - name: mkdir /dar/var
     file:
-      path: "/data/{{item}}"
-      state: absent
-    with_items: "{{data_dir.stdout_lines}}"
-    when: data_dir.stdout != ""
-
-
-  - name: create {{repo_dir}}
-    file:
-      path: "{{repo_dir}}"
-      state: directory
-      owner: root
-      group: root
+      path: "{{var_dir}}"
+      owner: cumulis
+      group: cumulis
       mode: 0755
+      state: directory
 
-
-  - name: download ius-release.rpm
-    get_url:
-      url: https://centos7.iuscommunity.org/ius-release.rpm
-      dest: ./
-
-  - name: yum install dependency
-    yum:
-      name: "{{item}}"
-      state: present
-    with_items:
-      - ius-release-1.0-15.ius.centos7.noarch.rpm
-      - lua53u
-      - lua53u-devel
-      - pcre.x86_64
-      - pcre2.x86_64
-      - psmisc
-      - bind-utils
-      - bzip2
-      - lsof
-
-  - name: ueradd cumulis
-    user:
-      name: cumulis
-      create_home: yes
-
-  - name: cp and unarchive empowerthing package to fe/ll/dl
+  - name: cp and unarchive compiled package to fe/ll/dl
     unarchive:
-      src: "{{version}}.tar.bz2"
+      src: "{{source_dir}/empowerthings-{{Tags}}.tar.bz2"
       dest: "{{repo_dir}}"
       owner: root
       group: root
       mode: 0755
 
-  - name: create cumulis2.conf file if doesn't have
-    shell: mv "{{repo_dir}}/{{version}}/conf/cumulis3.conf.dev" "{{repo_dir}}/{{version}}/conf/cumulis3.conf"
-
-  #create directory and soft link
-  - name: mkdir empowerthings directory
-    file:
-      path: "{{repo_dir}}/empowerthings"
-      owner: cumulis
-      group: cumulis
+  - name: override cumulis3.conf file with template
+    template:
+      src:  cumulis_conf.j2
+      dest: "{{repo_dir}}/empowerthings-{{Tags}}/conf/cumulis3.conf"
+      owner: root
+      group: root
       mode: 0755
-      recurse: yes
-      state: directory
 
   - name: create empowerthings soft link for directory bin/
     file:
-      src: "{{repo_dir}}/{{version}}/bin"
-      dest: "{{repo_dir}}/empowerthings/bin"
+      src: "{{repo_dir}}/empowerthings-{{Tags}}/bin"
+      dest: "{{var_dir}}/bin"
       owner: cumulis
       group: cumulis
       state: link
 
   - name: create empowerthings soft link for directory conf/
     file:
-      src: "{{repo_dir}}/{{version}}/conf"
-      dest: "{{repo_dir}}/empowerthings/conf"
+      src: "{{repo_dir}}/empowerthings-{{Tags}}/conf"
+      dest: "{{var_dir}}/conf"
       owner: cumulis
       group: cumulis
       state: link
 
-  - name: modify enviroment, replace root .bashrc with the template
-    template:
-      src: bashrc.j2
-      dest: /root/.bashrc
-      owner: root
-      group: root
-      mode: 0644
-
-  - name: modify enviroment, replace cumulis .bashrc with the template
-    template:
-      src: bashrc.j2
-      dest: /home/cumulis/.bashrc
-      owner: cumulis
-      group: cumulis
-      mode: 0644
-
-  - name: modify cassandra part in cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Cass_Hosts'
-      line: '    Cass_Hosts = "{{cass_a}}:{{cass_port}};{{cass_b}}:{{cass_port}};{{cass_c}}:{{cass_port}}"'
-    tags:
-      - cassandra
-
-  - name: modify minio-internal in cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Nodes(.*)internal'
-      backrefs: yes
-      line: '    API="http://{{s3_a}}:{{s3_port}}/internal,http://{{s3_b}}:{{s3_port}}/internal,http://{{s3_c}}:{{s3_port}}/internal,http://{{s3_d}}:{{s3_port}}/internal"'
-    tags:
-      - minio-internal
-
-  - name: modify minio-public in cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Nodes(.*)public'
-      backrefs: yes
-      line: '    API="http://{{s3_a}}:{{s3_port}}/public,http://{{s3_b}}:{{s3_port}}/public,http://{{s3_c}}:{{s3_port}}/public,http://{{s3_d}}:{{s3_port}}/public"'
-    tags:
-      - minio-public
-
-  - name: modify minio-private in cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Nodes(.*)private'
-      backrefs: yes
-      line: '    API="http://{{s3_a}}:{{s3_port}}/private,http://{{s3_b}}:{{s3_port}}/private,http://{{s3_c}}:{{s3_port}}/private,http://{{s3_d}}:{{s3_port}}/private"'
-    tags:
-      - minio-private
-
-  - name: modify NATS part in  cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Nodes(.*)4222'
-      backrefs: yes
-      line: '    Nodes = "{{nats_a}}:{{nats_port}},{{nats_b}}:{{nats_port}},{{nats_c}}:{{nats_port}}"'
-    tags:
-      - NATS
-
-  - name: modify Redis part in cumulis3.conf
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'Nodes(.*)7000'
-      backrefs: yes
-      line: '    Nodes = "{{rema_a}}:{{redi_port}},{{rema_b}}:{{redi_port}},{{rema_c}}:{{redi_port}},{{resl_a}}:{{redi_port}},{{resl_b}}:{{redi_port}},{{resl_c}}:{{redi_port}}"'
-    tags:
-      - Redis
-
-  - name: modify the keyword from dev to test
-    lineinfile:
-      path: "{{cumulis_conf}}"
-      regexp: 'dev'
-      backrefs: yes
-      line: 'test'
-    tags:
-      - change_env
-
-  #deploy java for DL
-  - name: cp and unarchive java to dl
-    unarchive:
-      src: "{{jdk}}.tar.bz2"
-      dest: "{{repo_dir}}"
-      owner: root
-      group: root
-      mode: 0755
-    when: "'DL' in group_names"
-
-  - name: create JAVA soft link for directory jdk1.8.0_144 on DL
-    file:
-      src: "{{repo_dir}}/{{jdk}}"
-      dest: "{{repo_dir}}/java"
-      owner: root
-      group: root
-      state: link
-    when: "'DL' in group_names"
-
-  - name: create keys.json
-    shell: cd "{{file_dir}}" && ansible-vault view keys --vault-password-file vault_pass > keys.json
-    delegate_to: 127.0.0.1
 
   - name: copy keys.json
     copy:
-      src: "{{file_dir}}/keys.json"
-      dest: "{{repo_dir}}/empowerthings/keys.json"
+      src: "{{call_dir}}/files/keys.json"
+      dest: "{{var_dir}}"
       owner: cumulis
       group: cumulis
       mode: 0644
 
-  - name: delete keys.json
-    file:
-      path: "{{repo_dir}}/empowerthings/keys.json"
-      state: absent
-    delegate_to: 127.0.0.1
+#  - name: delete keys.json
+#    file:
+#      path: "{{call_dir}}/files/keys.json"
+#      state: absent
+#    delegate_to: 127.0.0.1
 
   - name: start dl
     become_user: cumulis
-    shell: ". ~/.bashrc && cd {{repo_dir}}/empowerthings/ && bin/start_service.sh dl3 keys.json"
+    shell: "cd {{var_dir}} && bin/start_service.sh dl3 keys.json"
     when: "'DL' in group_names"
 
   - name: start ll
     become_user: cumulis
-    shell: "cd {{repo_dir}}/empowerthings/ && bin/start_service.sh ll3 keys.json"
+    shell: "cd {{var_dir}} && bin/start_service.sh ll3 keys.json"
     when: "'LL' in group_names"
 
   - name: start fe
     become_user: cumulis
-    shell: "cd {{repo_dir}}/empowerthings/ && bin/start_service.sh fe3 keys.json"
+    shell: "cd {{var_dir}} && bin/start_service.sh fe3 keys.json"
     when: "'FE' in group_names"
 
   #Post check
 
   - name: Check DL success
     wait_for:
-      path: "{{repo_dir}}/empowerthings/cumulis_dl3.log"
+      path: "{{var_dir}}/cumulis_dl3.log"
       search_regex: "listening for incoming requests"
       state: present
       msg: "failed to find 'listening for incoming requests'"
@@ -249,14 +125,14 @@
 
 
   - name: Check DL No Error/Exception
-    shell: grep Exception "{{repo_dir}}/empowerthings/cumulis_dl3.out"
+    shell: grep Exception "{{var_dir}}/cumulis_dl3.out"
     register: exception_dl
-    failed_when: '"Exception" in exception_dl.stdout'
+    failed_when: '"Exception" in exception_dl.stdout or "No such file or directory" in exception_dl.stdout' 
     when: "'DL' in group_names"
 
   - name: Check LL success
     wait_for:
-      path: "{{repo_dir}}/empowerthings/cumulis_ll3.log"
+      path: "{{var_dir}}/cumulis_ll3.log"
       search_regex: "Processing regular requests"
       state: present
       msg: "failed to find 'Processing regular requests'"
@@ -265,14 +141,14 @@
 
 
   - name: Check LL No Error/Exception
-    shell: grep Exception "{{repo_dir}}/empowerthings/cumulis_ll3.out"
+    shell: grep Exception "{{var_dir}}/cumulis_ll3.out"
     register: exception_ll
-    failed_when: '"Exception" in exception_ll.stdout'
+    failed_when: '"Exception" in exception_ll.stdout or "No such file or directory" in exception_ll.stdout'
     when: "'LL' in group_names"
 
- name: Check FE success
+  - name: Check FE success
     wait_for:
-      path: "{{repo_dir}}/empowerthings/cumulis_fe3.log"
+      path: "{{var_dir}}/cumulis_fe3.log"
       search_regex: "Starting services for namespace"
       state: present
       msg: "failed to find 'Starting services for namespace'"
@@ -280,7 +156,7 @@
     when: "'FE' in group_names"
 
   - name: Check FE No Error/Exception
-    shell: grep Exception "{{repo_dir}}/empowerthings/cumulis_fe3.out"
+    shell: grep Exception "{{var_dir}}/cumulis_fe3.out"
     register: exception_fe
-    failed_when: '"Exception" in exception_fe.stdout'
+    failed_when: '"Exception" in exception_fe.stdout or "No such file or directory" in exception_fe.stdout'
     when: "'FE' in group_names"

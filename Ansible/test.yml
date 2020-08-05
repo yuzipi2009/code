@@ -1,0 +1,68 @@
+---
+- hosts: FE:LL:DL
+  remote_user: kai-user
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+
+  #Post check
+
+  - name: Check DL success
+    wait_for:
+      path: "{{var_dir}}/cumulis_dl3.log"
+      search_regex: "listening for incoming requests"
+      state: present
+      msg: "failed to find 'listening for incoming requests'"
+      timeout: 5
+    register: fail_dl
+    when: "'DL' in group_names"
+
+
+  - name: Check DL No Error/Exception
+    shell: grep Exception "{{var_dir}}/cumulis_dl3.out"
+    register: exception_dl
+    failed_when: '"Exception" in exception_dl.stdout or "No such file or directory" in exception_dl.stdout'
+    when: "'DL' in group_names"
+
+  - name: Check LL success
+    wait_for:
+      path: "{{var_dir}}/cumulis_ll3.log"
+      search_regex: "Processing regular requests"
+      state: present
+      msg: "failed to find 'Processing regular requests'"
+      timeout: 5
+    register: fail_ll
+    when: "'LL' in group_names"
+
+
+  - name: Check LL No Error/Exception
+    shell: grep Exception "{{var_dir}}/cumulis_ll3.out"
+    register: exception_ll
+    failed_when: '"Exception" in exception_ll.stdout or "No such file or directory" in exception_ll.stdout'
+    when: "'LL' in group_names"
+
+  - name: Check FE success
+    wait_for:
+      path: "{{var_dir}}/cumulis_fe3.log"
+      search_regex: "Starting services for namespace"
+      state: present
+      msg: "failed to find 'Starting services for namespace'"
+      timeout: 5
+    register: fail_fe
+    when: "'FE' in group_names"
+
+  - name: Check FE No Error/Exception
+    shell: grep Exception "{{var_dir}}/cumulis_fe3.out"
+    register: exception_fe
+    failed_when: '"Exception" in exception_fe.stdout or "No such file or directory" in exception_fe.stdout'
+    when: "'FE' in group_names"
+
+  - name: Post deployment info to display portal
+    shell: curl -d "{'Date':'{{today}}','Service':'Empowerthings','New_Version':'{{Version}}','Comment':'{{Comment}}','Change':'{{Change}}'}" -X POST http://test.kaiostech.com/add
+    register: return
+    #failed_when: '"StatusCode:400" in return.stdout'
+    #delegate_to: 127.0.0.1
+    when: "'FE' in group_names"
+    #when: exception_fe.failed==False and fail_fe.failed==False and exception_ll.failed==False and fail_ll==False and exception_dl.failed==False and fail_dl.failed==False

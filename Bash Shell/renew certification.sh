@@ -8,7 +8,6 @@
 export certmgr_dir="/data/tools/repository/certmgr"
 export cert_dir="/data/tools/repository/certmgr/var/certs"
 export live_dir="/etc/letsencrypt/live"
-export user="iot-user"
 export today=`date +%s`
 export ha_dir="/data/tools/repository/haproxy"
 
@@ -48,6 +47,11 @@ export kaios_ha=(
 34.232.207.32
 )
 
+export k5_push_ha=(
+34.206.195.150
+34.194.206.58
+)
+
 export fota_ha=(
 34.201.58.167
 )
@@ -73,6 +77,9 @@ export t001_ha=(
 172.31.90.137
 )
 
+export open_ha=(
+52.70.113.166
+)
 
 # Functions
 ## Function: renew certification
@@ -108,6 +115,8 @@ function copy_pem_haproxy()
 
 nodes_ha=("$@")
 for host in "${nodes_ha[@]}";do
+
+    # the ssh user of AWS servers should be iot-user always, but for test env,it is kai-user
     # backup combo.pem
     ssh ${user}@${host} "sudo su -c 'cd ${live_dir}/${DN} && cp combo.pem combo.pem_`date +%Y%m%d`' " && \
     # copy new combo.pem
@@ -174,7 +183,7 @@ for line in `cat domain_list.txt`;do
     time_interval=$[$[$[${due_date_s}-${today}]/86400]+1]
 
     ## we should renew the certification before 30 days
-    if [[ ${time_interval} -lt 30 ]] && [[ "${host}" != "jenkins" ]] && [[ "${host}" != "dm" ]];then
+    if [[ ${time_interval} -le 35 ]] && [[ "${host}" != "jenkins" ]] && [[ "${host}" != "dm" ]];then
         echo "[Warning]${url}: remian ${time_interval} days --> Please renew my certification!"
 
     ##renew test/dev/stage/preprod/prod DN
@@ -183,6 +192,7 @@ for line in `cat domain_list.txt`;do
                 dev)
 
                     #DN=dev.kaiostech.com
+                    export user=iot-user
                     PROXY="${dev_ha[@]}"
                     renew_cert ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
@@ -195,9 +205,9 @@ for line in `cat domain_list.txt`;do
                 test)
 
                     #DN=test.kaiostech.com, use kai-user to access to hk test env
-                    user=kai-user
+                    export user=kai-user
                     PROXY="${test_ha[@]}"
-                    renew_cert ${DN} && \
+                    #renew_cert ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
                     echo "[Succeed] Certification is renewed for ${url}" || {
                     echo "[Failed] Certification renewal failed for ${url}, Aborting"
@@ -208,6 +218,7 @@ for line in `cat domain_list.txt`;do
                 stage)
 
                     #DN=stage.kaiostech.com
+                    export user=iot-user
                     PROXY="${stage_ha[@]}"
                     renew_cert ${DN} && \
                     upload_aws_arn ${DN} && \
@@ -221,6 +232,7 @@ for line in `cat domain_list.txt`;do
                 preprod)
 
                     #DN=preprod.kaiostech.com
+                    export user=iot-user
                     PROXY="${preprod_ha[@]}"
                     renew_cert ${DN} && \
                     upload_aws_arn ${DN} && \
@@ -234,6 +246,7 @@ for line in `cat domain_list.txt`;do
                 prod)
 
                     #DN=prod.kaiostech.com
+                    export user=iot-user
                     PROXY="${prod_ha[@]}"
                     renew_cert ${DN} && \
                     upload_aws_arn ${DN} && \
@@ -247,6 +260,7 @@ for line in `cat domain_list.txt`;do
                 cdn)
 
                     #DN=cdn.kaiostech.com
+                    export user=iot-user
                     renew_cert ${DN} && \
                     upload_aws_arn ${DN} && \
                     echo "[Succeed] Certification is renewed for ${url}" || {
@@ -255,10 +269,26 @@ for line in `cat domain_list.txt`;do
                     }
                     ;;
 
-                api|storage|push|auth|services|origin)
+                api|storage|auth|services|origin)
 
                     DN=kaiostech.com
+                    export user=iot-user
                     PROXY="${kaios_ha[@]}"
+                    renew_cert ${DN} && \
+                    upload_aws_arn ${DN} && \
+                    copy_pem_haproxy ${PROXY[@]} && \
+                    echo "[Succeed] Certification is renewed for ${url}" || {
+                    echo "[Failed] Certification renewal failed for ${url}, Aborting"
+                    exit
+                    }
+                    ;;
+
+                 # For production push
+                 push)
+
+                    DN=kaiostech.com
+                    export user=iot-user
+                    PROXY="${k5_push_ha[@]}"
                     renew_cert ${DN} && \
                     upload_aws_arn ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
@@ -271,6 +301,7 @@ for line in `cat domain_list.txt`;do
                  jiosit)
 
                     #DN=jiosit.kaiostech.com
+                    export user=iot-user
                     PROXY="${jiosit_ha[@]}"
                     renew_cert ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
@@ -283,7 +314,22 @@ for line in `cat domain_list.txt`;do
                  t001)
 
                     #DN=t001.kaiostech.com
+                    export user=iot-user
                     PROXY="${t001_ha[@]}"
+                    renew_cert ${DN} && \
+                    copy_pem_haproxy ${PROXY[@]} && \
+                    echo "[Succeed] Certification is renewed for ${url}" || {
+                    echo "[Failed] Certification renewal failed for ${url}, Aborting"
+                    exit
+                    }
+                    ;;
+
+
+                 open)
+
+                    #DN=open.kaiostech.com
+                    export user=iot-user
+                    PROXY="${open_ha[@]}"
                     renew_cert ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
                     echo "[Succeed] Certification is renewed for ${url}" || {
@@ -300,12 +346,13 @@ for line in `cat domain_list.txt`;do
         esac
 
         ##jenkins and dm.fota proxy are via independent haproxy or ngix, so they are special
-        elif [[ ${time_interval} -lt 30 ]] && [[ "${host}" == "jenkins" ]];then
+        elif [[ ${time_interval} -le 35 ]] && [[ "${host}" == "jenkins" ]];then
             case ${domain} in
 
                 dev)
 
                     DN=jenkins.dev.kaiostech.com
+                    export user=iot-user
                     PROXY="${dev_nginx[@]}"
                     renew_cert ${DN} && \
                     copy_pem_nginx ${PROXY[@]} && \
@@ -318,6 +365,7 @@ for line in `cat domain_list.txt`;do
                 stage) # stage(k4) jenkins is still via haproxy now, will be moved to nginx latter
 
                     DN=jenkins.stage.kaiostech.com
+                    export user=iot-user
                     PROXY="${stage_nginx[@]}"
                     renew_cert ${DN} && \
                     copy_pem_haproxy ${PROXY[@]} && \
@@ -331,6 +379,7 @@ for line in `cat domain_list.txt`;do
                 prod)
 
                     DN=jenkins.prod.kaiostech.com
+                    export user=iot-user
                     PROXY="${prod_nginx[@]}"
                     renew_cert ${DN} && \
                     copy_pem_nginx ${PROXY[@]} && \
@@ -346,9 +395,11 @@ for line in `cat domain_list.txt`;do
 
             esac
 
-        elif [[ ${time_interval} -lt 30 ]] && [[ "${host}" == "dm" ]] && [[ "${domain}" == "fota" ]];then
+
+        elif [[ ${time_interval} -le 35 ]] && [[ "${host}" == "dm" ]] && [[ "${domain}" == "fota" ]];then
 
                 #DN=fota.kaiostech.com
+                export user=iot-user
                 PROXY="${fota_ha[@]}"
                 renew_cert ${DN} && \
                 copy_pem_haproxy ${PROXY[@]} && \
@@ -358,7 +409,6 @@ for line in `cat domain_list.txt`;do
                 }
 
 
-
     else
         echo  "${url}: still remain ${time_interval}days -> Skip Renew..."
 
@@ -366,6 +416,4 @@ for line in `cat domain_list.txt`;do
     sleep 1
 done
 
-rm -rf domain_list.txt
-
-echo -e "Completed!\n"
+rm -rf ./domain_list.txt && echo -e "Completed!\n"

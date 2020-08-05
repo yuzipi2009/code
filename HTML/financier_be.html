@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Device Financier</title>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script>
+
+        $(document).ready(function(){
+            $("#imei1").val("");
+            $("#imei2").val("");
+            $("#imei3").val("");
+            $("#nextPayDl").val("");
+            $("#msg").val("");
+
+
+// Step1 "Get device status"
+            $("#Go1").click(function(){
+                imei=$("#imeia").val();
+                if (imei==""){
+                    tag="devices-API1"
+                }else {
+                    tag="devices-API2"
+                }
+                info="Started, Please Wait...."
+                args={"imei":imei,"tag":tag};
+                url = "http://127.0.0.1:7000/devices"
+                //$("#return2").html(info).css({"color":"#4169E1","font-size":"120%"});
+                $("#return1").html(info);
+                $.post(url,args,function(data,status){
+                    new_data=data.replace(/\n/g,"<br/>");
+                    console.log("Data:"+ new_data +"Status:"+ status);
+                    $("#return1").html(new_data);
+                });
+            });
+
+// Script2 "Notify Paid"
+            $("#Go2").click(function() {
+
+
+                map = new Object();
+                // Checked notify one
+                if ($("input[name='optionsRadios1']:checked").val() == "1") {
+                    tag = "notify-API3"
+                    map[$("#imeib").val()] = $("#dlb").val()
+                    console.log("map is :", map)
+                    alert(Object.keys(map).length)
+
+                    // Checked notify multiple
+                } else if ($("input[name='optionsRadios1']:checked").val() == "2") {
+                    tag = "notify-API4"
+                    list = document.getElementById("form2").getElementsByTagName("input");
+                    // alert(list.length)
+                    for (i = 0; i < list.length / 2; i++) {
+                        console.log("this is loop:", i)
+                        console.log("length is ", list.length / 2)
+                        console.log("imei is:", $("#imeiy" + i))
+                        console.log("imei value is:", $("#imeiy" + i).val())
+                        console.log("dl is:", $("#dly" + i))
+                        console.log("dl value is:", $("#dly" + i).val())
+                        if ($("#imeiy" + i).val() == "" || $("#dly" + i).val() == "") {
+                            //the input can't be empty
+                            continue
+                        }
+
+                        //map[$("#imeiy" + i).val()] = $("#dly" + i).val()
+                        map[$("#imeiy" + i).val()] = $("#dly" + i).val()
+                        //console.log("value type is ",typeof $("#dly" + i).val())
+
+
+                    }
+
+                } else {
+                    alert("Wrong radio checked.")
+                    return
+                }
+                // gernerate the map:{imei,dl}
+                alert("map2 size is "+Object.keys(map).length)
+
+
+
+                if (Object.keys(map).length == 0) {
+                    alert("Empty input is invalid")
+                }
+                map["tag"]=tag
+                //Ajax Post
+                console.log("final map is ", map)
+                url = "http://127.0.0.1:7000/notify_paid"
+                //args = {"a":map , "tag": tag};
+                //console.log("arg is ", args)
+                $.post(url,map, function (data, status) {
+                    new_data = data.replace(/\n/g, "<br/>");
+                    console.log("Data:" + new_data + "Status:" + status);
+                    $("#return2").html(new_data);
+                });
+            });
+
+
+// Script3 "Notify_credit_completed"
+            $("#Go3").click(function() {
+                // Checked comeplete_one
+                map = new Object();
+                if ($("input[name='optionsRadios2']:checked").val()=="3"){
+                    tag="complete-API5"
+                    //list=document.getElementById("form3").getElementsByTagName("input");
+                    map[$("#imeic").val()] = $("#msgc").val()
+                    //alert(list.length)
+                    alert(map)
+
+                    // Checked complete multiple
+                }   else if ($("input[name='optionsRadios2']:checked").val()=="4") {
+                    tag="complete-API6"
+                    list=document.getElementById("form4").getElementsByTagName("input");
+                    // alert(list.length)
+                    // gernerate the map:{imei,dl}
+                    for (i=0; i<list.length/2; i++) {
+                        console.log("this is loop:", i)
+                        console.log("length is ", list.length / 2)
+                        console.log("imei is:", $("#imeiz" + i))
+                        console.log("imei value is:", $("#imeiz" + i).val())
+                        console.log("dl is:", $("#msgz" + i))
+                        console.log("dl value is:", $("#msgz" + i).val())
+                        if ($("#imeiz" + i).val() == "" || $("#msgz" + i).val() == "") {
+                            //the input can't be empty
+                            continue
+                        }
+
+                        //map[$("#imeiy" + i).val()] = $("#dly" + i).val()
+                        map[$("#imeiz" + i).val()] = $("#msgz" + i).val()
+
+                        console.log("map is ", map)
+                    }
+
+                }   else {
+                    alert("Wrong radio checked.")
+                    return
+
+                }
+
+                if (Object.keys(map).length == 0) {
+                    alert("Empty input is invalid")
+                    return
+                }
+                //Ajax Post
+                map["tag"]=tag
+                console.log("final map is ",map)
+                url="http://127.0.0.1:7000/credit_completed"
+                $.post (url,map,function(data,status){
+                    new_data=data.replace(/\n/g,"<br/>");
+                    console.log("Data:"+ new_data +"Status:"+ status);
+                    $("#return2").html(new_data);
+                });
+
+            });
+
+// Function1 "radio action"
+            $('#form1').show();
+            $('#form2').hide();
+            $('#form3').show();
+            $('#form4').hide();
+            $('#form5').show();
+
+            $('#notifyone').click(function(){
+                $('#notifyone').prop('checked','checked');
+                $('#form2').hide();
+                $('#form1').show();
+            });
+
+            $('#notifylist').click(function(){
+                $('#notifylist').prop('checked','checked');
+                $('#form1').hide();
+                $('#form2').show();
+            });
+
+            $('#notifyone2').click(function(){
+                $('#notifyone2').prop('checked','checked');
+                $('#form4').hide();
+                $('#form3').show();
+            });
+
+            $('#notifylist2').click(function(){
+                $('#notifylist2').prop('checked','checked');
+                $('#form3').hide();
+                $('#form4').show();
+            });
+
+            $('#deviceone').click(function(){
+                $('#deviceone').prop('checked','checked');
+                $('#form5').show();
+            });
+
+            $('#devicelist').click(function(){
+                $('#devicelist').prop('checked','checked');
+                $('#form5').hide();
+            });
+
+        });
+
+        //Function2:add more
+        function add(){
+            var len = 2;
+            listslength = $(".input-list").length
+            //console.log("function list lengt is ",listslength)
+            len = len + listslength
+
+            inputs = "<div class='input-list' id='div"+len+"' style='margin-top:12px'>"
+            inputs += "<div class='form-group'> <input type='text' id='imeiy"+len+"' class='form-control' placeholder='Input Imei'></div>"
+            inputs += "<div class='form-group'><input type='text' id='dly"+len+"' class='form-control'  placeholder='Input Next Pay Deadline'></div>"
+            inputs += "<button type='button' style='background-color: #FF0000; border-color: #FF0000;color:#FFFFFF' class='btn btn-default' onclick='remove("+len+")' >Remove</button></div>"
+            $('.form-more').append(inputs);
+
+        }
+
+        //Function3:remove line
+        function remove(len){
+            $("#div"+len).remove();
+        }
+
+
+        $('#notifylist2').click(function(){
+            $('#notifylist2').prop('checked','checked');
+            $('#form3').hide();
+            $('#form4').show();
+
+        });
+
+        //Function2:add more
+        function add2(){
+            var len = 2;
+            listslength = $(".input-list2").length
+            console.log("function list lengt is ",listslength)
+            len = len + listslength
+            message="Congratulation."
+            inputs = "<div class='input-list2' id='divz"+len+"' style='margin-top:12px'>"
+            inputs += "<div class='form-group'> <input type='text' id='imeiz"+len+"' class='form-control' placeholder='Input Imei'></div>"
+            inputs += "<div class='form-group'><input type='text' id='msgz"+len+"' class='form-control'  placeholder='Input Message' value="+message+"></div>"
+            inputs += "<button type='button' style='background-color: #FF0000; border-color: #FF0000;color:#FFFFFF' class='btn btn-default' onclick='remove2("+len+")' >Remove</button></div>"
+            $('.form-more2').append(inputs);
+
+        }
+
+        //Function3:remove line
+        function remove2(len){
+            $("#divz"+len).remove();
+        }
+
+
+
+    </script>
+
+</head>
+<body>
+
+<style>
+    .box{
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .select{padding-left: 0;padding-right: 0;}
+
+    .center-block {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+
+</style>
+
+
+<div class="box">
+    <!--====================LEFT PART===================-->
+
+    <div style=" margin-top: 87px;">
+        <div style="border-bottom-style:solid;border-bottom-width:1px;">
+
+            <div>
+                <h3> <span style="color:#000000;">API1: Get Device Status</span></h3>
+            </div>
+
+            <div style="margin-top: 50px;" class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios3" id="deviceone" value="5" checked="checked">
+                    Click If you only want to get one device status
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios3" id="devicelist" value="6">
+                    Click If you only want to get all the status linked with your account
+                </label>
+            </div>
+
+            <div id="form5" style="margin-top: 60px;">
+                <form class="bs-example bs-example-form" role="form">
+                    <div class="input-group">
+                        <input type="text;" id="imeia" style="border-radius:40px;width:130%;height:100%;" class="form-control" class="form-control" placeholder="Input Imei">
+                    </div>
+
+                    <br/>
+                </form>
+            </div>
+            <div style="margin-top: 20px;" class="btn-group-lg">
+                <button id="Go1" style="width:150px" type="button" class="btn btn-primary btn-lg"> GO</button>
+            </div>
+            <br/>
+        </div>
+
+        <div id="return1" style="margin-top: 3px;">
+            <span style="color:#228B22; font-size:120%">Output:</span>
+        </div>
+
+    </div>
+    <!--div style="width:131px;height:142px; margin-left: auto;margin-right: auto;margin-top: 50px;"-->
+
+    <!--====================Middle PART===================-->
+
+    <div style=" margin-top: 87px;">
+        <div style="border-bottom-style:solid;border-bottom-width:1px;">
+
+            <div>
+                <h3><span style="color:#000000;">API2: Notify Paid</span></h3>
+            </div>
+
+
+            <div style="margin-top: 50px;" class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios1" id="notifyone" value="1" checked="checked">
+                    Click If you only want to notify one imei
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios1" id="notifylist" value="2">
+                    Click If you only want to notify multiple imeis
+                </label>
+            </div>
+            <!--button onClick="radioaction()">OK</button-->
+            <div id="form1">
+                <form id="fnotifyone" style="margin-top: 50px;" class="form-inline">
+                    <div class="form-group">
+                        <input type="text" id="imeib" class="form-control" placeholder="Input Imei">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="dlb" class="form-control"  placeholder="Input Next Pay Deadline">
+                    </div>
+                </form>
+            </div>
+
+
+            <div id="form2">
+                <form id="fnotifylist" style="margin-top: 50px;" class="form-inline">
+                    <div>
+                        <div class="form-group">
+                            <input type="text" id="imeiy0" class="form-control" placeholder="Input Imei">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="dly0" class="form-control"  placeholder="Input Next Pay Deadline">
+                        </div>
+
+                        <button type="button" style="background-color: #0ce43a; border-color: #0ce43a" class="btn btn-default" onclick="add()">Add More</button>
+
+                    </div>
+                    <div style="margin-top: 12px">
+                        <div class="form-group">
+                            <input type="text" id="imeiy1" class="form-control" placeholder="Input Imei">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="dly1" class="form-control"  placeholder="Input Next Pay Deadline">
+                        </div>
+                    </div>
+                    <div class="form-more">
+
+                    </div>
+                </form>
+            </div>
+            <br/>
+
+            <div >
+                <button id="Go2" style="width:150px;" type="button" class="btn btn-primary btn-lg"> Go</button>
+            </div>
+
+
+            <br/>
+
+        </div>
+
+        <div id="return2" style="margin-top: 3px;">
+            <span style="color:#228B22; font-size:120%">Output:</span>
+        </div>
+
+    </div>
+
+
+    <!--====================Right PART===================-->
+    <div style=" margin-top: 87px;">
+        <div style="border-bottom-style:solid;border-bottom-width:1px;">
+
+            <div>
+                <h3><span style="color:#000000;"> API3: Notify Credit Completion</span></h3>
+            </div>
+
+
+            <div style="margin-top: 50px;" class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios2" id="notifyone2" value="3" checked="checked">
+                    Click If you only want to notify one imei
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="optionsRadios2" id="notifylist2" value="4">
+                    Click If you only want to notify multiple imeis
+                </label>
+            </div>
+            <div id="form3">
+                <form id="fnotifyone2" style="margin-top: 50px;" class="form-inline">
+
+                    <div class="form-group">
+                        <input type="text" id="imeic" class="form-control" placeholder="Input Imei">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="msgc" class="form-control"  placeholder="Input Message" value="Congratulation, payment has been received, unlocked device">
+                    </div>
+                </form>
+            </div>
+
+
+            <div id="form4">
+                <form id="fnotifylist2" style="margin-top: 50px;" class="form-inline">
+                    <div>
+
+                        <div class="form-group">
+                            <input type="text" id="imeiz0" class="form-control" placeholder="Input Imei">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="msgz0" class="form-control"  placeholder="Input Message" value="Congratulation, payment has been received, unlocked device">
+                        </div>
+                        <button type="button" style="background-color: #0ce43a; border-color: #0ce43a" class="btn btn-default" onclick="add2()">Add More</button>
+                        <div style="margin-top: 12px">
+
+                            <div class="form-group">
+                                <input type="text" id="imeiz1" class="form-control" placeholder="Input Imei">
+                            </div>
+                            <div class="form-group">
+                                <input type="text" id="msgz1" class="form-control"  placeholder="Input Message" value="Congratulation, payment has been received, unlocked device">
+                            </div>
+                        </div>
+                        <div class="form-more2">
+                        </div>
+
+
+                    </div>
+                </form>
+            </div>
+            <br/>
+
+            <div style="width:400px;" class="btn-group-lg child">
+                <button id="Go3" style="width:150px" type="button" class="btn btn-primary  btn-lg"> Go</button>
+            </div>
+
+
+            <br/>
+
+        </div>
+
+        <div id="return3" style="margin-top: 3px;">
+            <span style="color:#228B22; font-size:120%">Output:</span>
+        </div>
+
+    </div>
+
+</div>
+</body>
+</html>
