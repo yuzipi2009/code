@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Kaios Store APP</title>
+    <!-- Datatables CSS -->
+    <script src="/static/kaios_app/jquery-3.2.1/jquery-3.2.1.min.js" ></script>
+    <link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/DataTables-1.10.18/css/jquery.dataTables.min.css">
+    <script type="text/javascript" src="/static/kaios_app/datatables/DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
+    <!--link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/style.css"-->
+    <script src="https://cdn.datatables.net/buttons/1.2.2/js/dataTables.buttons.min.js"></script>
+    <!--script  src="https://cdn.datatables.net/buttons/1.6.0/js/buttons.flash.min.js"></script-->
+    <link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/test-align.css">
+    <link href="/static/kaios_app/css/table.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js"></script>
+    <script src="https://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js"></script>
+    <script src="https://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.html5.min.js"></script>
+</head>
+
+<style>
+    .export{
+        background-color:#C0C0C0;
+        border: #C0C0C0;
+        padding: 7px 20px;
+        margin-right:50px;
+
+        font-weight: normal;
+        font-size:19px;
+        color:#C0C0C0;
+        border-radius:20px;
+    }
+    .export span {
+        color: #000!important;
+    }
+</style>
+
+<body>
+<h4 align = left >This page is update at: <span>2020-08-05_02:34 UTC</span></h4>
+<style>
+    span {
+        color: #2196F3;
+    }
+</style>
+<h4 align = left >Totally we have <span>639</span> Published apps now </h4>
+<h4 align = left >Click <img src="/static/kaios_app/details_open.png" object-fit: cover/> show<span style="color:#FF4500"> Version_History, White_List, Support_OS</span></h4>
+<h4 align = left>Click <a href="./figure.html"><span>here</span></a> to view graphical views of category</h4>
+<h4 align = left>Click <a href="./table2.html"><span>here</span></a> to view descriptions of apps</h4>
+
+<table id="store_app"  class="table table-striped table-bordered" style="width:100%">
+    <thead>
+    <tr>
+        <th></th>
+        <th>Developer</th>
+        <th>Icon</th>
+        <th>APP_Name</th>
+        <th>App_ID</th>
+        <th>Category</th>
+        <th>Type</th>
+        <th>Current_Version</th>
+        <th>Publish_Date</th>
+    </tr>
+    </thead>
+
+    <tfoot>
+    <tr>
+        <th></th>
+        <th>Developer</th>
+        <th>Icon</th>
+        <th>APP_Name</th>
+        <th>App_ID</th>
+        <th>Category</th>
+        <th>Type</th>
+        <th>Current_Version</th>
+        <th>Publish_Date</th>
+    </tr>
+    </tfoot>
+
+    <tbody>
+    </tbody>
+</table>
+<script type="text/javascript">
+
+    /* Formatting function for row details - modify as you need */
+    function format ( d ) {
+        // `d` is the original data object for the row
+        return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+            '<tr>'+
+            '<td>Version History:</td>'+
+            '<td>'+d.Version_history+'</td>'+
+            '</tr>'+
+
+
+            '<tr>'+
+            '<td>Support_OS:</td>'+
+            '<td>'+d.Support_OS+'</td>'+
+            '</tr>'+
+
+            '<tr>'+
+            '<td>White_list:</td>'+
+            '<td>'+d.White_module+'</td>'+
+            '</tr>'+
+
+            '</table>';
+    }
+
+    $(document).ready(function () {
+        var groupColumn = 1;
+        var table = $('#store_app').DataTable({
+            "LengthChange": true,
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: 'Export excel',
+                    className: 'export',
+                    exportOptions: {
+                        modifier: {
+                            page: 'all'
+                        }
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    text: 'Export PDF',
+                    className: 'export',
+                }
+
+            ] ,
+            "ajax": "/static/kaios_app/datatables/data.json",
+            "columns": [
+                {
+                    "className": 'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+
+                { "data": "Developer"},
+                {
+                    "data": "Icon",
+                    "render": function(data, type, row) {
+                        return '<img src="'+data+'" width="40px" height="40px"/>';
+                    }
+                },
+
+                { "data": "App_Name"},
+                { "data": "App_ID"},
+                { "data": "Category"},
+                { "data": "Type"},
+                { "data": "Current_Version"},
+                { "data": "Publish_Date"}
+            ],
+
+            "columnDefs": [
+                { "visible": false, "targets": groupColumn }
+            ],
+            "order": [[ groupColumn, 'asc' ]],
+            "displayLength": 25,
+            "drawCallback": function ( settings ) {
+                var api = this.api();
+                var rows = api.rows( {page:'current'} ).nodes();
+                var last=null;
+
+                api.column(groupColumn, {page:'current'} ).data().each( function ( group, i ) {
+                    if ( last !== group ) {
+                        $(rows).eq( i ).before(
+                            '<tr class="group"><td colspan="8">'+group+'</td></tr>'
+                        );
+
+                        last = group;
+                    }
+                } );
+            }
+        } );
+
+        // Add event listener for opening and closing details
+        $('#store_app tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = table.row( tr );
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+    } );
+
+</script>
+</body>
+
+</script-->
+</html>

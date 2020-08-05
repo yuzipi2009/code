@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Trace Deploy</title>
+    <!-- Datatables CSS -->
+    <script src="/static/kaios_app/jquery-3.2.1/jquery-3.2.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/DataTables-1.10.18/css/jquery.dataTables.min.css">
+    <link href="/static/kaios_app/css/bootstrap.min.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/kaios_app/datatables/DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
+    <!--link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/style.css"-->
+    <link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/test-align.css">
+    <link href="/static/kaios_app/css/table.css" rel="stylesheet">
+</head>
+
+
+<style>
+    label{
+        font-weight:normal;
+        margin-left:105px;
+    {
+</style>
+
+
+<div class="container-fluid">
+    <!-- button trigger modal -->
+    <button class="btn btn-lg btn-default" data-toggle="modal" data-target="#myModal" style="background-color: #FFD700; padding: 5px 5px 5px 5px;float:left; margin-left:98px;margin-top:55px;font-weight: bold;">Soft Version</a></button>
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <table id="Version" table.html_simple_ajax class="cell-border" style="width:100%">
+                    <thead>
+                    <tr>
+                        <th>Env</th>
+                        <th>Redis</th>
+                        <th>Nats</th>
+                        <th>Minio</th>
+                        <th>Cassandra</th>
+                        <th>Haproxy</th>
+                        <th>Push</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    </tbody>
+                </table>
+                <script type="text/javascript">
+
+
+                    $(document).ready(function () {
+                        var table = $('#Version').DataTable({
+                            "paging": false,
+                            "searching": true,
+                            "info":false,
+
+
+                            "ajax": "/static/kaios_app/datatables/deploy/version.json",
+                            "columns": [
+                                { "data": "Env"},
+                                { "data": "Redis"},
+                                { "data": "Nats"},
+                                { "data": "Minio"},
+                                { "data": "Cassandra"},
+                                { "data": "Haproxy"},
+                                { "data": "Push"}
+                            ]
+
+                        } );
+
+
+                    } );
+                </script>
+
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+</div>
+
+
+
+
+
+<body style="font-size: 16px;">
+<h2 align = center > <span style="color:#2196F3"> Production:</span></h3>
+
+    <table id="Production" table.html_simple_ajax class="display" style="width:88%">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Date(UTC)</th>
+            <th>Sevice</th>
+            <th>New_Version</th>
+            <th>Executor</th>
+        </tr>
+        </thead>
+
+        <tfoot>
+        <tr>
+            <th></th>
+            <th>Date(UTC)</th>
+            <th>Sevice</th>
+            <th>New_Version</th>
+            <th>Executor</th>
+        </tr>
+        </tfoot>
+
+        <tbody>
+        </tbody>
+    </table>
+    <script type="text/javascript">
+
+        /* Formatting function for row details - modify as you need */
+        function format ( d ) {
+            // `d` is the original data object for the row
+            return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+                '<tr>'+
+                '<td>Comment:</td>'+
+                '<td>'+d.Comment+'</td>'+
+                '</tr>'+
+
+                '</table>';
+        }
+
+        $(document).ready(function () {
+            var table = $('#Production').DataTable({
+                "paging": true,
+                "searching": true,
+                "info":false,
+                "order": [[ 1, "desc" ],[ 3, "desc" ]],
+
+
+                "ajax": "/static/kaios_app/datatables/deploy/production.json",
+                "columns": [
+                    {
+                        "className": 'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+
+                    { "data": "Date"},
+                    { "data": "Service"},
+                    { "data": "New_Version"},
+                    { "data": "Executor"}
+                ],
+
+            } );
+
+
+
+            // Add event listener for opening and closing details
+            $('#Production tbody').on('click', 'td.details-control', function () {
+                var tr = $(this).closest('tr');
+                var row = table.row( tr );
+
+                if ( row.child.isShown() ) {
+                    // This row is already open - close it
+                    row.child.hide();
+                    tr.removeClass('shown');
+                }
+                else {
+                    // Open this row
+                    row.child( format(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+            } );
+        } );
+    </script>
+    </br>
+    </br>
+    <!==aaa==>
+    <style>
+        th {
+            text-align:center;
+        }
+
+    </style>
+    <h2 align = center > <span style="color:#2196F3"> Stage:</span></h3>
+
+        <table id="Stage" table.html_simple_ajax class="display" style="width:88%">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Date(UTC)</th>
+                <th>Sevice</th>
+                <th>New_Version</th>
+                <th>Executor</th>
+            </tr>
+            </thead>
+
+            <tfoot>
+            <tr>
+                <th></th>
+                <th>Date(UTC)</th>
+                <th>Sevice</th>
+                <th>New_Version</th>
+                <th>Executor</th>
+            </tr>
+            </tfoot>
+
+            <tbody>
+            </tbody>
+        </table>
+        <script type="text/javascript">
+
+            /* Formatting function for row details - modify as you need */
+            function format ( d ) {
+                // `d` is the original data object for the row
+                return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+                    '</tr>'+
+                    '<td>Comment:</td>'+
+                    '<td>'+d.Comment+'</td>'+
+                    '</tr>'+
+
+                    '</table>';
+            }
+
+            $(document).ready(function () {
+                var table = $('#Stage').DataTable({
+                    "paging": true,
+                    "searching": true,
+                    "info":false,
+                    "order": [[ 1, "desc" ],[ 3, "desc" ]],
+
+
+                    "ajax": "/static/kaios_app/datatables/deploy/stage.json",
+                    "columns": [
+                        {
+                            "className": 'details-control',
+                            "orderable":      false,
+                            "data":           null,
+                            "defaultContent": ''
+                        },
+
+                        { "data": "Date"},
+                        { "data": "Service"},
+                        { "data": "New_Version"},
+                        { "data": "Executor"}
+                    ],
+
+                } );
+
+
+
+                // Add event listener for opening and closing details
+                $('#Stage tbody').on('click', 'td.details-control', function () {
+                    var tr = $(this).closest('tr');
+                    var row = table.row( tr );
+
+                    if ( row.child.isShown() ) {
+                        // This row is already open - close it
+                        row.child.hide();
+                        tr.removeClass('shown');
+                    }
+                    else {
+                        // Open this row
+                        row.child( format(row.data()) ).show();
+                        tr.addClass('shown');
+                    }
+                } );
+            } );
+        </script>
+        </br>
+        </br>
+        <!==bbb==>
+
+        <h2 align = center > <span style="color:#2196F3"> Test:</span></h3>
+            <style>
+                span {
+                    color: #2196F3;
+                }
+            </style>
+
+            <table id="Test" table.html_simple_ajax class="display" style="width:88%">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>Date(UTC)</th>
+                    <th>Sevice</th>
+                    <th>New_Version</th>
+                    <th>Executor</th>
+                </tr>
+                </thead>
+
+                <tfoot>
+                <tr>
+                    <th></th>
+                    <th>Date(UTC)</th>
+                    <th>Sevice</th>
+                    <th>New_Version</th>
+                    <th>Executor</th>
+                </tr>
+                </tfoot>
+
+                <tbody>
+                </tbody>
+            </table>
+            <script type="text/javascript">
+
+                /* Formatting function for row details - modify as you need */
+                function format ( d ) {
+                    // `d` is the original data object for the row
+                    return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+                        '<tr>'+
+                        '<td>Comment:</td>'+
+                        '<td>'+d.Comment+'</td>'+
+                        '</tr>'+
+
+                        '</table>';
+                }
+
+                $(document).ready(function () {
+                    var table = $('#Test').DataTable({
+                        "paging": true,
+                        "searching": true,
+                        "info":false,
+                        "order": [[ 1, "desc" ],[ 3, "desc" ]],
+
+
+                        "ajax": "/static/kaios_app/datatables/deploy/test.json",
+                        "columns": [
+                            {
+                                "className": 'details-control',
+                                "orderable":      false,
+                                "data":           null,
+                                "defaultContent": ''
+                            },
+
+                            { "data": "Date"},
+                            { "data": "Service"},
+                            { "data": "New_Version"},
+                            { "data": "Executor"}
+                        ],
+
+                    } );
+
+
+
+                    // Add event listener for opening and closing details
+                    $('#Test tbody').on('click', 'td.details-control', function () {
+                        var tr = $(this).closest('tr');
+                        var row = table.row( tr );
+
+                        if ( row.child.isShown() ) {
+                            // This row is already open - close it
+                            row.child.hide();
+                            tr.removeClass('shown');
+                        }
+                        else {
+                            // Open this row
+                            row.child( format(row.data()) ).show();
+                            tr.addClass('shown');
+                        }
+                    } );
+                } );
+            </script>
+            <script src="/static/kaios_app/js/bootstrap.min.js"></script>
+</body>
+</html>

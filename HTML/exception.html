@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Monitor Exception</title>
+    <!-- Datatables CSS -->
+    <script src="/static/kaios_app/jquery-3.2.1/jquery-3.2.1.min.js"></script>
+    <script src="/static/kaios_app/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/DataTables-1.10.18/css/jquery.dataTables.min.css">
+    <script type="text/javascript" src="/static/kaios_app/datatables/DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
+    <!--link rel="stylesheet" type="text/css" href="/static/kaios_app/datatables/style.css"-->
+    <link rel="stylesheet" href="/static/kaios_app/datatables/test-align.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap4.min.css">
+    <link href="/static/kaios_app/css/table.css" rel="stylesheet">
+</head>
+
+
+<style>
+    .box{
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    table.dataTable thead th,table.dataTable tfoot th {
+        text-align:center;
+        font-weight:normal;
+    }
+
+    .button1{
+        width:74px;
+        height: 30px;
+        background-color: #FF8800;
+        border-color: #FF8800;
+        margin-left:5px;
+        text-align: center;
+    }
+
+    .button2{
+        width:101px;
+        height: 33px;
+        background-color: #00C851;
+        border-color: #00C851;
+        margin-left:5px;
+        text-align: center;
+    }
+
+
+    label{
+        font-weight:normal;
+        margin-left:12px;}
+
+
+</style>
+
+
+<script>
+    $(document).ready(function(){
+
+        // Script1:click edit to input bug_id
+
+        // when clic edit, below will get all the value of that line
+        $("#Test").on('click', '#edittest', function (e) {
+            e.preventDefault();
+            var currentRow = $(this).closest("tr");
+            //$(currentRow).find(".bug_id").html("hello world");
+            // var cst = currentRow.find("td:eq(1)").text();
+            //var host = currentRow.find("td:eq(2)").text();
+            //var version = currentRow.find("td:eq(3)").text();
+            var data = $('#Test').DataTable().row(currentRow).data();
+            // $("#edit").attr("Bug_ID","180");
+            // var a="1234"
+            // data['Bug_ID']=a
+            var id=data['ID'];
+            var env=data['Env'];
+            var now_bugid=data['Bug_ID'];
+            var bug_id=prompt("Input Bug_ID",now_bugid);
+            console.log("bug_idnow is" , now_bugid)
+            if (bug_id == null){
+                console.log("bug_idif is" , bug_id)
+                return;  //means click "cancel"
+            } else {
+                console.log("bug_idelse is" , bug_id)
+                $(currentRow).find(".test_bug").html(bug_id);
+
+                //alert(env+id);
+
+                // Script2:Trigger ajax POST api
+                url="http://test.kaiostech.com/bugid";
+                args={bug_id:bug_id,id:id,env:env};
+                $.post (url,args,function(data,status){
+                    console.log("Data:"+ data +"Status:"+ status);
+                });
+            }
+        });
+
+
+
+        $("#Stage").on('click', '#editstage', function (e) {
+            e.preventDefault();
+            var currentRow = $(this).closest("tr");
+            //$(currentRow).find(".bug_id").html("hello world");
+            // var cst = currentRow.find("td:eq(1)").text();
+            //var host = currentRow.find("td:eq(2)").text();
+            //var version = currentRow.find("td:eq(3)").text();
+            var data = $('#Stage').DataTable().row(currentRow).data();
+            // $("#edit").attr("Bug_ID","180");
+            // var a="1234"
+            // data['Bug_ID']=a
+            var id=data['ID'];
+            var env=data['Env'];
+            var bug_id=prompt("Input Bug_ID");
+            $(currentRow).find(".stage_bug").html(bug_id);
+
+            //alert(env+id);
+
+            // Script2:Trigger ajax POST api
+            url="http://test.kaiostech.com/bugid";
+            args={bug_id:bug_id,id:id,env:env};
+            $.post (url,args,function(data,status){
+                console.log("Data:"+ data +"Status:"+ status);
+            });
+        });
+        // API1:Set time
+        url="http://test.kaiostech.com/gettime";
+        $.get (url,function(data,status){
+            console.log("Data:"+ data +"Status:"+ status);
+            $("#time").html(data);
+        });
+
+
+
+        // Script3 Restart Cloud
+        $("#restart").click(function(){
+            env=$("#env").val();
+            layer=$("#layer").val();
+            pw="magic"
+            var key=prompt("Input the key");
+            console.log("key is" , key)
+            if (key == null || key == ""){
+                console.log("keyif is" , key)
+                return;  //means click "cancel"
+            };
+            if (key != pw) {
+                alert("Wrong key!")
+                return
+            } else {
+                console.log("keyelse is" , key)
+            };
+            $("#return").html("Going to restart " + env + " " + layer + "," + "Please Wait...");
+            args={env:env,layer:layer};
+            url="http://test.kaiostech.com/restart";
+            $.post (url,args,function(data,status){
+                console.log(env,layer);
+                console.log("Data:"+ data +"Status:"+ status);
+                alert(data);
+                $("#return").html("");
+
+            });
+        });
+
+    });
+</script>
+
+
+
+<!--body style="font-size: 16px;"-->
+<body>
+</br>
+<h5 align = left id="time"></h5>
+<!--Restart Button-->
+
+<form style="font-weight:bold;font-family: Work Sans, sans-serif;" class="bs-example bs-example-form" role="form">
+    <div style="height: 70xpx;position:absolute;margin-left: 430px" class="select">
+        <label  style="margin-left: 0px;" class="select control-label">Env</label>
+        <select id="env" style="width:80px;font-size:17px;" class="form-control">
+            <option>test</option>
+            <option>stage</option>
+        </select>
+    </div>
+
+    <div style="height: 70xpx;position:absolute; margin-left:565px;margiin-top:1px" class="select">
+        <label  style="margin-left: 0px;" class="select control-label">Layer</label>
+
+        <select id="layer" style="width:80px;font-size:20px;" class="form-control">
+            <option>fe</option>
+            <option>ll</option>
+            <option>dl</option>
+        </select>
+    </div>
+
+    <div style="margin-top: 31px; position:absolute; margin-left:695px;" class="ibtn-group-lg">
+        <button id="restart" style="background-color:#F00022;border-color:#F00022;" type="button" class="btn btn-info btn"> Restart</button>
+    </div>
+    <!--div style="border:1px solid #000;width:50%;position:absolute; margin-left:315px; margin-top: 94px;"></div-->
+
+</form>
+<div id="return" style="color:#228B22; font-size:120%; margin-top: 45px; position:absolute; margin-left:825px;">
+</div>
+
+
+
+</br>
+</br>
+</br>
+</br>
+</br>
+
+<h2 align = center > <span style="color:#1164F6; font-size: 27px; font-weight:bold;font-family: Work Sans, sans-serif;"> Stage:</span></h3>
+
+    <table id="Stage" class="table table-bordered" style="width:99%;">
+        <thead class="thead-dark">
+        <tr>
+            <th>Details</th>
+            <th>Date(CST)</th>
+            <th>Host</th>
+            <th>Version</th>
+            <th>Bug_ID</th>
+            <th>Option</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <script type="text/javascript">
+
+        /* Formatting function for row details - modify as you need */
+        function format ( d ) {
+            // `d` is the original data object for the row
+            return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+                '<tr>'+
+                '<td>ID:</td>'+
+                '<td>'+d.ID+'</td>'+
+                '</tr>'+
+
+                '<tr>'+
+                '<td>Exception:</td>'+
+                '<td>'+d.Exception+'</td>'+
+                '</tr>'+
+
+
+                '</table>';
+        }
+
+        $(document).ready(function () {
+            var table = $('#Stage').DataTable({
+                "paging": true,
+                "searching": true,
+                "info":false,
+                "order": [ 1, "desc" ],
+
+                "ajax": "/static/kaios_app/datatables/exception_json/exception_stage.json",
+                "columns": [
+                    {
+                        "className": 'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { "data": "Created_at"},
+                    { "data": "Host"},
+                    { "data": "Version"},
+
+                    { "className": 'stage_bug',
+                        "data": "Bug_ID"},
+
+                    {
+                        "className": 'edit',
+                        "orderable": false,
+                        "data": null,
+                        "defaultContent": '<button type="button" id ="editstage" class="btn btn-info btn button2">Edit</button>'
+                    }
+                ],
+
+            } );
+            // Add event listener for opening and closing details
+            $('#Stage tbody').on('click', 'td.details-control', function () {
+                var tr = $(this).closest('tr');
+                var row = table.row( tr );
+
+                if ( row.child.isShown() ) {
+                    // This row is already open - close it
+                    row.child.hide();
+                    tr.removeClass('shown');
+                }
+                else {
+                    // Open this row
+                    row.child( format(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+            } );
+        } );
+    </script>
+    <!==bbb==>
+    </br>
+
+
+    <h2 align = center > <span style="color:#46AB21; font-size: 27px; font-weight:bold;font-family: Work Sans, sans-serif;"> Test:</span></h3>
+        <table id="Test" class="table table-bordered" style="width:99%;">
+            <thead class="thead-dark">
+            <tr>
+                <th>Details</th>
+                <th>Date(CST)</th>
+                <th>Host</th>
+                <th>Version</th>
+                <th>Bug_ID</th>
+                <th>Option</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            </tbody>
+        </table>
+        <script type="text/javascript">
+
+            /* Formatting function for row details - modify as you need */
+            function format ( d ) {
+                // `d` is the original data object for the row
+                return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">'+
+                    '<tr>'+
+                    '<td>ID:</td>'+
+                    '<td>'+d.ID+'</td>'+
+                    '</tr>'+
+
+                    '<tr>'+
+                    '<td>Exception:</td>'+
+                    '<td>'+d.Exception+'</td>'+
+                    '</tr>'+
+
+
+                    '</table>';
+            }
+
+            $(document).ready(function () {
+                var table = $('#Test').DataTable({
+                    "paging": true,
+                    "searching": true,
+                    "info":false,
+                    "order": [ 1, "desc" ],
+
+
+                    "ajax": "/static/kaios_app/datatables/exception_json/exception_test.json",
+                    "columns": [
+                        {
+                            "className": 'details-control',
+                            "orderable":      false,
+                            "data":           null,
+                            "defaultContent": ''
+                        },
+                        { "data": "Created_at"},
+                        { "data": "Host"},
+                        { "data": "Version"},
+                        { "className": 'test_bug',
+                            "data": "Bug_ID"},
+                        {
+                            "className": 'edit',
+                            "orderable": false,
+                            "data": null,
+                            "defaultContent": '<button id="edittest" type="button" class="btn btn-info btn button2">Edit</button>'
+                        }
+
+                    ],
+
+                } );
+                // Add event listener for opening and closing details
+                $('#Test tbody').on('click', 'td.details-control', function () {
+                    var tr = $(this).closest('tr');
+                    var row = table.row( tr );
+
+                    if ( row.child.isShown() ) {
+                        // This row is already open - close it
+                        row.child.hide();
+                        tr.removeClass('shown');
+                    }
+                    else {
+                        // Open this row
+                        row.child( format(row.data()) ).show();
+                        tr.addClass('shown');
+                    }
+                } );
+            } );
+
+
+        </script>
+</body>
+</html>
