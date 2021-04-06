@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Search Uploader</title>
+	<link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">  
+	<script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+	<script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script>
+
+$(document).ready(function(){
+    const Url='/uploader';
+// Script1 get_status
+   $("#search").click(function(){
+     app_name=$("#app_name").val();
+     info="Script Started, Please Wait...."
+     args={app_name:app_name};
+     //$("#return1").html(info).css({"color":"#228B22","font-size":"100%"});
+     $("#return").html(info);
+     $.post (Url,args,function(data,status){
+          new_data=data.replace(/\n/g,"<br/>");
+          console.log("Data:"+ new_data +"Status:"+ status);
+          $("#return").html(new_data);
+          alert ("Complete!");
+  });
+  });
+});
+
+</script>
+
+</head>
+
+<style>
+        html,body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    
+        body {
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+        }
+    </style>
+
+</style>
+
+<body>
+
+<div>
+	<p class="lead" style="font-size:22px;margin-bottom: 255px;color:#4169E1; margin-right:-299px;margin-left:56px">
+               Script: Search App Uploader
+        </p>
+</div>
+
+<div>
+      <input id="app_name" type="text;" style="border-radius:40px;padding:7px 15px;font-size:20px;" class="form-control" id="index" placeholder="Input App Name">
+</div>
+
+<div class="btn-group-lg">
+               <button id="search" style="width:160px;background-color: #4169E1; border-color: #4169E1; margin-left:5px" type="button" class="btn btn-info btn"> Search Uploader</button>
+</div>
+
+
+<div id="return" style="margin-top:130px; margin-left:-421px ;width:500px">
+          <span style="font-size:100%">Output:</span>
+</div>
+
+ 
+</body>
+</html>

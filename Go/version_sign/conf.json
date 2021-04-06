@@ -1,0 +1,15 @@
+{
+  "Db": {
+    "host": "127.0.0.1",
+    "username": "root",
+    "password":"Kai@2020!",
+    "port": "3306"
+  },
+  "TransFile": {
+    "host": "10.81.74.99",
+    "username": "root",
+    "password": "Kai@2019!",
+    "port":"990"
+  },
+  "Salt": "YxQ9NtLlKBbtB0ZCatAGZq6MowUwg+8aE="
+}
